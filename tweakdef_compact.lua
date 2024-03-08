@@ -195,7 +195,7 @@ function Randomizer:create_build_options()
   end
 end
 local constructors = {
-"armaca","armack","armacsub","armacv","armca","armch","armck","armcs","armcsa","armcv","coraca","corack","coracsub","coracv","corca","corch","corck","corcs","corcsa","corcv","corcom","armcom","armfark","armdecom","armmlv","armbeaver","armconsul","cormls","cormuskrat","cormlv","cordecom","cormando","armasy","armsy","armlab","armalab","armvp","armavp","armap","armaap","armfhp","armhp","armamsub","armplat","armshltx","armshltxuw","corasy","corsy","corlab","coralab","corvp","coravp","corap","coraap","corfhp","corhp","coramsub","corplat","corgant","corgantuw"
+"armaca","armack","armacsub","armacv","armca","armch","armck","armcs","armcsa","armcv","coraca","corack","coracsub","coracv","corca","corch","corck","corcs","corcsa","corcv","corcom","armcom","armfark","armdecom","armmlv","armbeaver","armconsul","cormls","cormuskrat","cormlv","cordecom","cormando","armasy","armsy","armlab","armalab","armvp","armavp","armap","armaap","armfhp","armhp","armamsub","armplat","armshltx","armshltxuw","corasy","corsy","corlab","coralab","corvp","coravp","corap","coraap","corfhp","corhp","coramsub","corplat","corgant","corgantuw", "corfast"
 }
 function is_land_factory(name)
   return name == "armlab"
