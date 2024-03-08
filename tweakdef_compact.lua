@@ -98,6 +98,14 @@ function Randomizer:get_category_name(name)
   end
   return nil
 end
+function Randomizer:find_requirements(name)
+  for i, req in ipairs(self.requirements) do
+    if req.filter(name) then
+      return req.reqs
+    end
+  end
+  return nil
+end
 function Randomizer:init_unit_lists()
   for i, constructor in ipairs(self.constructors) do
     local category_name = self:get_category_name(constructor)
@@ -128,8 +136,9 @@ function Randomizer:init_shufflers()
     if category_name then
       local ud = UnitDefs[constructor]
       if ud and ud.builder and ud.buildoptions then
-        if self.requirements[constructor] then
-          for j, req in ipairs(self.requirements[constructor]) do
+        local reqs = self:find_requirements(constructor)
+        if reqs then
+          for j, req in ipairs(reqs) do
             local index = self.shufflers[category_name]:find_next_index_with_condition(req.req)
             if index then
               local unit_name = self.shufflers[category_name].tbl[index]
@@ -152,8 +161,9 @@ function Randomizer:create_build_options()
       if ud and ud.builder and ud.buildoptions then
         local build_options_count = table.getn(ud.buildoptions)
         local new_buildoptions = {}
-        if self.requirements[constructor] then
-          for i, req in ipairs(self.requirements[constructor]) do
+        local reqs = self:find_requirements(constructor)
+        if reqs then
+          for i, req in ipairs(reqs) do
             local index = self.shufflers["reserved"]:find_next_index_with_condition(req.req)
             if index then
               local unit_name = self.shufflers["reserved"].tbl[index]
@@ -194,16 +204,50 @@ function Randomizer:create_build_options()
     end
   end
 end
-local constructors = {
-"armaca","armack","armacsub","armacv","armca","armch","armck","armcs","armcsa","armcv","coraca","corack","coracsub","coracv","corca","corch","corck","corcs","corcsa","corcv","corcom","armcom","armfark","armdecom","armmlv","armbeaver","armconsul","cormls","cormuskrat","cormlv","cordecom","cormando","armasy","armsy","armlab","armalab","armvp","armavp","armap","armaap","armfhp","armhp","armamsub","armplat","armshltx","armshltxuw","corasy","corsy","corlab","coralab","corvp","coravp","corap","coraap","corfhp","corhp","coramsub","corplat","corgant","corgantuw", "corfast"
-}
+local coms = {"armcom","corcom"}
+if Spring.GetModOptions().experimentallegionfaction then 
+  local leg = {"legcom", "legcomlvl2", "legcomlvl3", "legcomlvl4"}
+  for _, v in ipairs(leg) do
+    table.insert(coms, v)
+  end
+end
+function get_child_builders(builder, tbl)
+  if not tbl[builder] then 
+      tbl[builder] = true
+  end
+  local ud = UnitDefs[builder]
+  if ud and ud.builder and ud.buildoptions then
+      for i, v in ipairs(ud.buildoptions) do
+          local u2 = UnitDefs[v]
+          if u2 and u2.builder and not tbl[v] then
+              get_child_builders(v, tbl)
+          end
+      end
+  end
+end
+function get_builders()
+  local builders_set = {}
+  for i, v in ipairs(coms) do
+      get_child_builders(v, builders_set)
+  end
+  local builders_array = {}
+  for k in pairs(builders_set) do
+      table.insert(builders_array, k)
+  end
+  return builders_array
+end
+local constructors = get_builders()
 function is_land_factory(name)
   return name == "armlab"
     or name == "armalab"
     or name == "corlab"
     or name == "coralab"
+    or name == "leglab"
+    or name == "legalab"
     or name == "armvp"
     or name == "armavp"
+    or name == "legvp"
+    or name == "legavp"
     or name == "corvp"
     or name == "coravp"
     or name == "armhp"
@@ -222,6 +266,8 @@ function is_air_factory(name)
     or name == "armaap"
     or name == "corap"
     or name == "coraap"
+    or name == "legap"
+    or name == "legaap"
     or name == "armplat"
     or name == "corplat"
 end
@@ -232,6 +278,7 @@ end
 function is_experimental_factory(name)
   return name == "armshltx"
     or name == "corgant"
+    or name == "leggant"
 end
 function is_experimental_amphibious_factory(name)
   return name == "armshltxuw"
@@ -274,86 +321,54 @@ function is_sea_constructor(name)
   return false
 end
 requirements = {
-  armcom = {
-    {
-      req = function(unit_name)
-        local ud = UnitDefs[unit_name]
-        if is_land_factory(unit_name) and ud and ud.metalcost < 1000 then
-          return true
-        end
-        return false
-      end,
-    },
-    {
-      req = function(unit_name)
-        local ud = UnitDefs[unit_name]
-        if is_sea_factory(unit_name) and ud and ud.metalcost < 1000 then
-          return true
-        end
-        return false
-      end,
-    },
-    {
-      req = function(unit_name)
-        if unit_name == "armmex" or unit_name == "cormex" then
-          return true
-        end
-      end,
-    },
-    {
-      req = function(unit_name)
-        if unit_name == "armsolar" or unit_name == "corsolar" then
-          return true
-        end
-      end,
-    },
-    {
-      req = function(unit_name)
-        if unit_name == "armtide" or unit_name == "cortide" then
-          return true
-        end
-      end,
-    },
-  },
-  corcom = {
-    {
-      req = function(unit_name)
-        local ud = UnitDefs[unit_name]
-        if is_land_factory(unit_name) and ud and ud.metalcost < 1000 then
-          return true
-        end
-        return false
-      end,
-    },
-    {
-      req = function(unit_name)
-        local ud = UnitDefs[unit_name]
-        if is_sea_constructor(unit_name) and ud and ud.metalcost < 1000 then
-          return true
-        end
-        return false
-      end,
-    },
-    {
-      req = function(unit_name)
-        if unit_name == "armmex" or unit_name == "cormex" then
-          return true
-        end
-      end,
-    },
-    {
-      req = function(unit_name)
-        if unit_name == "armsolar" or unit_name == "corsolar" then
-          return true
-        end
-      end,
-    },
-    {
-      req = function(unit_name)
-        if unit_name == "armtide" or unit_name == "cortide" then
-          return true
-        end
-      end,
+  {
+    filter = function(unit_name)
+      local ud = UnitDefs[unit_name]
+      if ud and (unit_name == "armcom" or unit_name == "corcom" or unit_name:sub(1, #"legcom") == "legcom") then
+        return true
+      end
+      return false
+    end,
+    reqs = {
+      {
+        req = function(unit_name)
+          local ud = UnitDefs[unit_name]
+          if is_land_factory(unit_name) and ud and ud.metalcost < 1000 then
+            return true
+          end
+          return false
+        end,
+      },
+      {
+        req = function(unit_name)
+          local ud = UnitDefs[unit_name]
+          if is_sea_factory(unit_name) and ud and ud.metalcost < 1000 then
+            return true
+          end
+          return false
+        end,
+      },
+      {
+        req = function(unit_name)
+          if unit_name == "armmex" or unit_name == "cormex" then
+            return true
+          end
+        end,
+      },
+      {
+        req = function(unit_name)
+          if unit_name == "armsolar" or unit_name == "corsolar" then
+            return true
+          end
+        end,
+      },
+      {
+        req = function(unit_name)
+          if unit_name == "armtide" or unit_name == "cortide" then
+            return true
+          end
+        end,
+      },
     },
   },
 }
