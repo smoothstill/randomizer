@@ -1,0 +1,3 @@
+v 1.00 - First release
+v 1.01 - Added support for Legion faction
+v 1.02 - Ensure that the build options for the builder are distinct, with no duplicates

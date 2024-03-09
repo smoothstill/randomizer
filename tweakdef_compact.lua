@@ -196,8 +196,10 @@ function Randomizer:create_build_options()
 
           local index = self.shufflers[next_category_name]:next()
           local unit_name = self.shufflers[next_category_name].tbl[index]
-          table.insert(new_buildoptions, unit_name)
-          self.shufflers[next_category_name]:remove_current()
+          if unit_name and not new_buildoptions[unit_name] then
+            table.insert(new_buildoptions, unit_name)
+            self.shufflers[next_category_name]:remove_current()
+          end
         end
         ud.buildoptions = new_buildoptions
       end
