@@ -194,14 +194,17 @@ function Randomizer:create_build_options()
               end
             end
           end
-
-          local index = self.shufflers[next_category_name]:next()
-          local unit_name = self.shufflers[next_category_name].tbl[index]
-          if unit_name and not array_contains(new_buildoptions, unit_name) then
+          local k = 1
+          local unit_name = nil
+          local index = nil
+          repeat
+            index = self.shufflers[next_category_name]:next()
+            unit_name = self.shufflers[next_category_name].tbl[index]
+            k = k + 1
+          until not array_contains(new_buildoptions, unit_name) or k >= #self.shufflers[next_category_name].tbl
+          if not array_contains(new_buildoptions, unit_name) then
             table.insert(new_buildoptions, unit_name)
             self.shufflers[next_category_name]:remove_current()
-          else
-            i = i - 1
           end
         end
         ud.buildoptions = new_buildoptions
@@ -242,50 +245,28 @@ function get_builders()
   return builders_array
 end
 local constructors = get_builders()
-function is_land_factory(name)
-  return name == "armlab"
-    or name == "armalab"
-    or name == "corlab"
-    or name == "coralab"
-    or name == "leglab"
-    or name == "legalab"
-    or name == "armvp"
-    or name == "armavp"
-    or name == "legvp"
-    or name == "legavp"
-    or name == "corvp"
-    or name == "coravp"
-    or name == "armhp"
-    or name == "corhp"
+function is_land_lab(name)
+  local labs = {armlab=1,armalab=1,corlab=1,coralab=1,leglab=1,legalab=1,armvp=1,armavp=1,legvp=1,legavp=1,corvp=1,coravp=1,armhp=1,corhp=1}
+  return labs[name]
 end
-function is_sea_factory(name)
-  return name == "armsy"
-    or name == "armasy"
-    or name == "corsy"
-    or name == "corasy"
-    or name == "armfhp"
-    or name == "corfhp"
+function is_sea_lab(name)
+  local labs = {armsy=1,armasy=1,corsy=1,corasy=1,armfhp=1,corfhp=1}
+  return labs[name]
 end
-function is_air_factory(name)
-  return name == "armap"
-    or name == "armaap"
-    or name == "corap"
-    or name == "coraap"
-    or name == "legap"
-    or name == "legaap"
-    or name == "armplat"
-    or name == "corplat"
+function is_air_lab(name)
+  local labs = {armap=1,armaap=1,corap=1,coraap=1,legap=1,legaap=1,armplat=1,corplat=1}
+  return labs[name]
 end
-function is_amphibious_factory(name)
+function is_amphibious_lab(name)
   return name == "armasub"
     or name == "corasub"
 end
-function is_experimental_factory(name)
+function is_experimental_lab(name)
   return name == "armshltx"
     or name == "corgant"
     or name == "leggant"
 end
-function is_experimental_amphibious_factory(name)
+function is_experimental_amphibious_lab(name)
   return name == "armshltxuw"
     or name == "corgantuw"
 end
@@ -338,7 +319,7 @@ requirements = {
       {
         req = function(unit_name)
           local ud = UnitDefs[unit_name]
-          if is_land_factory(unit_name) and ud and ud.metalcost < 1000 then
+          if is_land_lab(unit_name) and ud and ud.metalcost < 1000 then
             return true
           end
           return false
@@ -347,7 +328,7 @@ requirements = {
       {
         req = function(unit_name)
           local ud = UnitDefs[unit_name]
-          if is_sea_factory(unit_name) and ud and ud.metalcost < 1000 then
+          if is_sea_lab(unit_name) and ud and ud.metalcost < 1000 then
             return true
           end
           return false
@@ -370,13 +351,6 @@ requirements = {
       {
         req = function(unit_name)
           if unit_name == "armtide" or unit_name == "cortide" then
-            return true
-          end
-        end,
-      },
-      {
-        req = function(unit_name)
-          if unit_name == "armmoho" or unit_name == "cormoho" then
             return true
           end
         end,
@@ -404,32 +378,32 @@ local categories = {
   },
   land_factories = {
     category_fn = function(name)
-      return is_land_factory(name)
+      return is_land_lab(name)
     end,
   },
   sea_factories = {
     category_fn = function(name)
-      return is_sea_factory(name)
+      return is_sea_lab(name)
     end,
   },
   air_factories = {
     category_fn = function(name)
-      return is_air_factory(name)
+      return is_air_lab(name)
     end,
   },
   amphibious_factories = {
     category_fn = function(name)
-      return is_amphibious_factory(name)
+      return is_amphibious_lab(name)
     end,
   },
   experimental_non_amphibious_factories = {
     category_fn = function(name)
-      return is_experimental_factory(name)
+      return is_experimental_lab(name)
     end,
   },
   experimental_amphibious_factories = {
     category_fn = function(name)
-      return is_experimental_amphibious_factory(name)
+      return is_experimental_amphibious_lab(name)
     end,
   },
 }
