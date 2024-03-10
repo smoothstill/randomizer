@@ -27,7 +27,7 @@ function Shuffler:new(tbl)
   return self
 end
 function Shuffler:shuffle()
-  for i = table.getn(self.tbl), 2, -1 do
+  for i = #self.tbl, 2, -1 do
     local j = math.random(i)
     self.tbl[i], self.tbl[j] = self.tbl[j], self.tbl[i]
   end
@@ -43,12 +43,12 @@ function Shuffler:reset()
   self:shuffle()
 end
 function Shuffler:next()
-  if table.getn(self.tbl) == 0 then
+  if #self.tbl == 0 then
     self:reset()
     return self.index
   end
 
-  self.index = (self.index % table.getn(self.tbl)) + 1
+  self.index = (self.index % #self.tbl) + 1
   return self.index
 end
 function Shuffler:get_current()
@@ -59,18 +59,18 @@ function Shuffler:remove_current()
   table.remove(self.tbl, self.index)
   self.index = self.index - 1
   if self.index < 1 then
-    self.index = table.getn(self.tbl)
+    self.index =  #self.tbl
   end
-  if table.getn(self.tbl) == 0 then
+  if #self.tbl == 0 then
     self:reset()
   end
   return elem
 end
 function Shuffler:find_next_index_with_condition(condition)
-  if table.getn(self.tbl) == 0 then
+  if #self.tbl == 0 then
     self:reset()
   end
-  for i = 1, table.getn(self.tbl) do
+  for i = 1, #self.tbl do
     self:next()
     if condition(self.tbl[self.index]) then
       return self.index
@@ -153,13 +153,14 @@ function Randomizer:init_shufflers()
     end
   end
 end
+function array_contains(array, value) for i, v in ipairs(array) do if v == value then return true end end return false end
 function Randomizer:create_build_options()
   for i, constructor in ipairs(self.constructors) do
     local category_name = self:get_category_name(constructor)
     if category_name then
       local ud = UnitDefs[constructor]
       if ud and ud.builder and ud.buildoptions then
-        local build_options_count = table.getn(ud.buildoptions)
+        local build_options_count = #ud.buildoptions
         local new_buildoptions = {}
         local reqs = self:find_requirements(constructor)
         if reqs then
@@ -179,7 +180,7 @@ function Randomizer:create_build_options()
             total_weight = total_weight + v
           end
         end
-        for i = table.getn(new_buildoptions), build_options_count do
+        for i = #new_buildoptions, build_options_count do
           local next_category_name = category_name
           if total_weight then
             local weights = self.categories[category_name].weights
@@ -193,11 +194,18 @@ function Randomizer:create_build_options()
               end
             end
           end
-
-          local index = self.shufflers[next_category_name]:next()
-          local unit_name = self.shufflers[next_category_name].tbl[index]
-          table.insert(new_buildoptions, unit_name)
-          self.shufflers[next_category_name]:remove_current()
+          local k = 1
+          local unit_name = nil
+          local index = nil
+          repeat
+            index = self.shufflers[next_category_name]:next()
+            unit_name = self.shufflers[next_category_name].tbl[index]
+            k = k + 1
+          until not array_contains(new_buildoptions, unit_name) or k >= #self.shufflers[next_category_name].tbl
+          if not array_contains(new_buildoptions, unit_name) then
+            table.insert(new_buildoptions, unit_name)
+            self.shufflers[next_category_name]:remove_current()
+          end
         end
         ud.buildoptions = new_buildoptions
       end
@@ -237,50 +245,28 @@ function get_builders()
   return builders_array
 end
 local constructors = get_builders()
-function is_land_factory(name)
-  return name == "armlab"
-    or name == "armalab"
-    or name == "corlab"
-    or name == "coralab"
-    or name == "leglab"
-    or name == "legalab"
-    or name == "armvp"
-    or name == "armavp"
-    or name == "legvp"
-    or name == "legavp"
-    or name == "corvp"
-    or name == "coravp"
-    or name == "armhp"
-    or name == "corhp"
+function is_land_lab(name)
+  local labs = {armlab=1,armalab=1,corlab=1,coralab=1,leglab=1,legalab=1,armvp=1,armavp=1,legvp=1,legavp=1,corvp=1,coravp=1,armhp=1,corhp=1}
+  return labs[name]
 end
-function is_sea_factory(name)
-  return name == "armsy"
-    or name == "armasy"
-    or name == "corsy"
-    or name == "corasy"
-    or name == "armfhp"
-    or name == "corfhp"
+function is_sea_lab(name)
+  local labs = {armsy=1,armasy=1,corsy=1,corasy=1,armfhp=1,corfhp=1}
+  return labs[name]
 end
-function is_air_factory(name)
-  return name == "armap"
-    or name == "armaap"
-    or name == "corap"
-    or name == "coraap"
-    or name == "legap"
-    or name == "legaap"
-    or name == "armplat"
-    or name == "corplat"
+function is_air_lab(name)
+  local labs = {armap=1,armaap=1,corap=1,coraap=1,legap=1,legaap=1,armplat=1,corplat=1}
+  return labs[name]
 end
-function is_amphibious_factory(name)
+function is_amphibious_lab(name)
   return name == "armasub"
     or name == "corasub"
 end
-function is_experimental_factory(name)
+function is_experimental_lab(name)
   return name == "armshltx"
     or name == "corgant"
     or name == "leggant"
 end
-function is_experimental_amphibious_factory(name)
+function is_experimental_amphibious_lab(name)
   return name == "armshltxuw"
     or name == "corgantuw"
 end
@@ -333,7 +319,7 @@ requirements = {
       {
         req = function(unit_name)
           local ud = UnitDefs[unit_name]
-          if is_land_factory(unit_name) and ud and ud.metalcost < 1000 then
+          if is_land_lab(unit_name) and ud and ud.metalcost < 1000 then
             return true
           end
           return false
@@ -342,7 +328,7 @@ requirements = {
       {
         req = function(unit_name)
           local ud = UnitDefs[unit_name]
-          if is_sea_factory(unit_name) and ud and ud.metalcost < 1000 then
+          if is_sea_lab(unit_name) and ud and ud.metalcost < 1000 then
             return true
           end
           return false
@@ -392,32 +378,32 @@ local categories = {
   },
   land_factories = {
     category_fn = function(name)
-      return is_land_factory(name)
+      return is_land_lab(name)
     end,
   },
   sea_factories = {
     category_fn = function(name)
-      return is_sea_factory(name)
+      return is_sea_lab(name)
     end,
   },
   air_factories = {
     category_fn = function(name)
-      return is_air_factory(name)
+      return is_air_lab(name)
     end,
   },
   amphibious_factories = {
     category_fn = function(name)
-      return is_amphibious_factory(name)
+      return is_amphibious_lab(name)
     end,
   },
   experimental_non_amphibious_factories = {
     category_fn = function(name)
-      return is_experimental_factory(name)
+      return is_experimental_lab(name)
     end,
   },
   experimental_amphibious_factories = {
     category_fn = function(name)
-      return is_experimental_amphibious_factory(name)
+      return is_experimental_amphibious_lab(name)
     end,
   },
 }
